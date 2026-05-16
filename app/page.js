@@ -2,10 +2,8 @@ import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { Suspense } from 'react';
 
-// 🔹 고객님이 가지고 계신 파일 이름(InvitationView)으로 맞춤 수정!
 import InvitationView from '../components/InvitationView'; 
 
-// 🔹 환경 변수 안전 접근 유틸리티
 const getEnv = (key, fallback) => {
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key];
@@ -13,7 +11,6 @@ const getEnv = (key, fallback) => {
   return fallback;
 };
 
-// 🔹 Firebase 서버 사이드 초기화
 const firebaseConfig = {
   apiKey: getEnv('NEXT_PUBLIC_FIREBASE_API_KEY', 'AIzaSyDS-YsD7nB323VAT_MhhXhJM4tOft0ROek'),
   authDomain: getEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'compass114-92ff1.firebaseapp.com'),
@@ -27,16 +24,16 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const db = getFirestore(app);
 const mainAppId = getEnv('NEXT_PUBLIC_APP_ID', 'wedding-app-123');
 
-// 🌟 [핵심] 카카오톡 로봇이 긁어갈 썸네일 메타데이터를 서버에서 즉시 완성하는 함수
 export async function generateMetadata({ searchParams }) {
-  const id = searchParams?.id; 
+  // 🌟 [핵심 수정] Next.js 최신 버전을 위해 await를 추가하여 아이디를 정확히 읽어옵니다.
+  const params = await searchParams;
+  const id = params?.id; 
   
   if (!id) {
     return { title: '우리 결혼합니다.', description: '모바일초대장' };
   }
 
   try {
-    // 서버가 브라우저가 켜지기 전에 데이터베이스에서 초대장 정보를 가져옵니다.
     const docRef = doc(db, 'artifacts', mainAppId, 'public', 'data', 'invitations', id);
     const docSnap = await getDoc(docRef);
 
@@ -66,7 +63,6 @@ export async function generateMetadata({ searchParams }) {
   return { title: '우리 결혼합니다.' };
 }
 
-// 실제 화면 렌더링 부 (Suspense로 묶어 useSearchParams 에러 방지)
 export default function Page() {
   return (
     <Suspense fallback={
@@ -74,7 +70,6 @@ export default function Page() {
         로딩중입니다...
       </div>
     }>
-      {/* 🔹 진짜 청첩장 화면을 렌더링합니다 */}
       <InvitationView />
     </Suspense>
   );
