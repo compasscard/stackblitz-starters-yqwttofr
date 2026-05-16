@@ -1438,7 +1438,7 @@ function EditForm({
             혼주/가족 연락처 설정
           </h2>
           <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-            미리보기 연락처 탭의 '아코디언 토글(혼주)' 아래에 표시될
+            미리보기 연락처 탭의 아코디언 토글(혼주) 아래에 표시될
             연락처입니다. 필요에 따라 추가 및 삭제가 가능합니다.
           </p>
 
