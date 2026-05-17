@@ -1,7 +1,7 @@
-"use client";
-
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation'; // 🔹 Next.js 전용 파라미터 도구 추가
+// Next.js 전용 라우터 대신 브라우저 호환용 훅으로 대체하여 원본 동작을 동일하게 유지합니다.
+// import { useSearchParams } from 'next/navigation'; 
+
 import {
   MapPin, Phone, Copy, Heart, ChevronDown, ChevronUp, Image as ImageIcon,
   Edit3, Check, Calendar as CalIcon, Settings, MessageSquare, Trash2, X,
@@ -13,6 +13,14 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+
+// 🔹 Next.js 환경의 useSearchParams를 브라우저 환경에서 동작하도록 Mocking
+const useSearchParams = () => {
+  const [params] = useState(() => 
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  );
+  return params;
+};
 
 const getEnv = (key, fallback) => {
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
@@ -80,7 +88,8 @@ const initialData = {
   guestbook: [],
 };
 
-export default function InvitationClient() {
+// 🔹 캔버스 환경에 맞추어 export default function App() 로 이름만 변경
+export default function App() {
   const searchParams = useSearchParams(); // 🔹 URL 파라미터 읽어오기
   const [data, setData] = useState(initialData);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -89,6 +98,34 @@ export default function InvitationClient() {
   const [isViewer, setIsViewer] = useState(false);
   const [invitationId, setInvitationId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 문자 및 SNS 공유 시 썸네일을 크게 보여주기 위한 메타 태그 동적 삽입
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const coverImg = data.mainCoverType === 'edited' && data.editedMainPhoto ? data.editedMainPhoto : data.mainPhoto;
+    const finalImage = data.thumbnailPhoto || coverImg;
+
+    const setMetaTag = (attrName, attrValue, content) => {
+      let meta = document.querySelector(`meta[${attrName}="${attrValue}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(attrName, attrValue);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    setMetaTag('property', 'og:image', finalImage);
+    setMetaTag('property', 'og:title', data.shareTitle || '우리 결혼합니다.');
+    setMetaTag('property', 'og:description', data.shareDescription || '모바일초대장');
+    
+    // 문자 앱(안드로이드, iOS)에서 썸네일을 크게(summary_large_image) 보여주는 설정
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:image', finalImage);
+    setMetaTag('name', 'twitter:title', data.shareTitle || '우리 결혼합니다.');
+    setMetaTag('name', 'twitter:description', data.shareDescription || '모바일초대장');
+  }, [data.thumbnailPhoto, data.mainPhoto, data.editedMainPhoto, data.mainCoverType, data.shareTitle, data.shareDescription]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -328,6 +365,8 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
           title: data.shareTitle || '우리 결혼합니다.',
           description: data.shareDescription || '모바일초대장',
           imageUrl: finalThumbnail,
+          imageWidth: 800,
+          imageHeight: 1200, // 🔹 카카오톡 공유 썸네일도 800x1200으로 변경
           link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
         },
         buttons: [{ title: '초대장 보기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }],
@@ -707,7 +746,7 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
           <h2 className="font-bold text-gray-700 mb-4 pb-2 border-b">링크 공유 썸네일 설정</h2>
           <div className="space-y-6">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-2">썸네일 이미지</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-2">썸네일 이미지 <span className="text-gray-400 font-normal">(권장: 800x1200 세로형)</span></label>
               <div className="flex items-center gap-3">
                 {data.thumbnailPhoto ? (
                   <div className="relative"><img src={data.thumbnailPhoto} alt="preview" className="w-16 h-8 object-cover rounded border border-gray-200" /><button onClick={() => handleRemoveImage('thumbnailPhoto')} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600"><X size={12} /></button></div>
@@ -749,7 +788,7 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
             </div>
             {data.mainCoverType !== 'edited' && (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2">메인 커버 사진</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-2">메인 커버 사진 <span className="text-gray-400 font-normal">(권장: 800x1200 세로형)</span></label>
                 <div className="flex items-center gap-3">{data.mainPhoto ? (<div className="relative"><img src={data.mainPhoto} alt="preview" className="w-12 h-12 object-cover rounded border border-gray-200" /><button onClick={() => handleRemoveImage('mainPhoto')} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600"><X size={12} /></button></div>) : (<div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center text-xs text-gray-400">없음</div>)}<input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'mainPhoto')} className="text-xs" /></div>
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
                   <div>
@@ -767,7 +806,7 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
             )}
             {data.mainCoverType === 'edited' && (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2">편집 커버 사진</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-2">편집 커버 사진 <span className="text-gray-400 font-normal">(권장: 800x1200 세로형)</span></label>
                 <div className="flex items-center gap-3">{data.editedMainPhoto ? (<div className="relative"><img src={data.editedMainPhoto} alt="preview" className="w-12 h-12 object-cover rounded border border-gray-200" /><button onClick={() => handleRemoveImage('editedMainPhoto')} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600"><X size={12} /></button></div>) : (<div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center text-xs text-gray-400">없음</div>)}<input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'editedMainPhoto')} className="text-xs" /></div>
               </div>
             )}
