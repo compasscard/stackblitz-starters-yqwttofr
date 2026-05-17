@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect, Suspense } from 'react';
 // Next.js 전용 라우터 대신 브라우저 호환용 훅으로 대체하여 원본 동작을 동일하게 유지합니다.
 // import { useSearchParams } from 'next/navigation'; 
