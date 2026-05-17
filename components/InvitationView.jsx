@@ -40,7 +40,7 @@ const getFirebaseConfig = () => {
     appId: getEnv('NEXT_PUBLIC_FIREBASE_APP_ID', '1:861952326694:web:884895828dd96819cffae7'),
   };
 };
-
+ 
 const app = getApps().length === 0 ? initializeApp(getFirebaseConfig()) : getApps()[0];
 const auth = getAuth(app);
 const db = getFirestore(app);
