@@ -63,7 +63,7 @@ const initialData = {
   ],
   weddingDate: '2026-10-24', weddingTime: '12:30',
   locationName: '더 라움 마제스틱 볼룸', locationAddress: '서울특별시 강남구 역삼동 123-45', locationPhone: '02-1234-5678',
-  shareTitle: '우리 결혼합니다.', shareDescription: '컴퍼스카드 모바일청첩장', thumbnailPhoto: '', 
+  shareTitle: '철수&영희 우리 결혼합니다.', shareDescription: '컴퍼스카드 모바일청첩장', thumbnailPhoto: '', 
   mainCoverType: 'basic', editedMainPhoto: '',
   greetingTitle: '초대합니다', greetingTitleFontSize: 30,
   mainTextColor: 'text-white', customMainTextColor: '#B99A7A', mainOverlayOpacity: 0,
@@ -120,13 +120,13 @@ export default function App() {
     };
 
     setMetaTag('property', 'og:image', finalImage);
-    setMetaTag('property', 'og:title', data.shareTitle || '우리 결혼합니다.');
+    setMetaTag('property', 'og:title', data.shareTitle || '철수&영희 우리 결혼합니다.');
     setMetaTag('property', 'og:description', data.shareDescription || '컴퍼스카드 모바일청첩장');
     
     // 문자 앱(안드로이드, iOS)에서 썸네일을 크게(summary_large_image) 보여주는 설정
     setMetaTag('name', 'twitter:card', 'summary_large_image');
     setMetaTag('name', 'twitter:image', finalImage);
-    setMetaTag('name', 'twitter:title', data.shareTitle || '우리 결혼합니다.');
+    setMetaTag('name', 'twitter:title', data.shareTitle || '철수&영희 우리 결혼합니다.');
     setMetaTag('name', 'twitter:description', data.shareDescription || '컴퍼스카드 모바일청첩장');
   }, [data.thumbnailPhoto, data.mainPhoto, data.editedMainPhoto, data.mainCoverType, data.shareTitle, data.shareDescription]);
 
@@ -411,7 +411,7 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
       window.Kakao.Share.sendDefault({
         objectType: 'feed',
         content: {
-          title: data.shareTitle || '우리 결혼합니다.',
+          title: data.shareTitle || '철수&영희 우리 결혼합니다.',
           description: data.shareDescription || '컴퍼스카드 모바일청첩장',
           imageUrl: finalThumbnail,
           imageWidth: 800,
@@ -810,7 +810,7 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'thumbnailPhoto')} className="text-xs" />
               </div>
             </div>
-            <div className="space-y-4"><Input label="미리보기 제목" name="shareTitle" value={data.shareTitle} onChange={handleChange} placeholder="우리 결혼합니다." /><Input label="미리보기 내용" name="shareDescription" value={data.shareDescription} onChange={handleChange} placeholder="컴퍼스카드 모바일청첩장" /></div>
+            <div className="space-y-4"><Input label="미리보기 제목" name="shareTitle" value={data.shareTitle} onChange={handleChange} placeholder="철수&영희 우리 결혼합니다." /><Input label="미리보기 내용" name="shareDescription" value={data.shareDescription} onChange={handleChange} placeholder="컴퍼스카드 모바일청첩장" /></div>
           </div>
         </section>
 
