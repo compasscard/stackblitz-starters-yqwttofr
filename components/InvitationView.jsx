@@ -249,7 +249,7 @@ export default function App() {
       </div>
     );
   }
-
+ 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center font-sans text-gray-800">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative overflow-x-hidden">
