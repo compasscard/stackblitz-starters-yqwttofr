@@ -391,7 +391,7 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
       return;
     }
     try {
-      if (!window.Kakao.isInitialized()) window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'a1bc967f249056d996c6bf4d8c91be60'));
+      if (!window.Kakao.isInitialized()) window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'f6d0ab13fce12a6a86747d727894e634'));
 
       // 🔹 카카오톡 공유 시에도 최신 데이터 자동 저장 보장 및 최신 URL 획득
       const savedId = await handleSave();
