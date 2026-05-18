@@ -135,6 +135,35 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 2500);
   };
 
+  // 🔹 변경 사항을 서버에 저장하고 URL 상태를 갱신하는 공통 함수
+  const handleSave = async () => {
+    // 뷰어 모드(손님)일 경우 내용이 변경되지 않으므로 덮어쓰지 않고 기존 ID만 반환
+    if (isViewer) return invitationId;
+    
+    try {
+      if (invitationId) {
+        // 이미 생성된 청첩장인 경우 변경사항 덮어쓰기 업데이트
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'invitations', invitationId);
+        await updateDoc(docRef, data);
+        return invitationId;
+      } else {
+        // 처음 생성하는 경우 새로 업로드
+        const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'invitations'), data);
+        const newId = docRef.id;
+        setInvitationId(newId);
+        if (typeof window !== 'undefined') {
+          // 주소창 URL을 생성된 최신 링크로 새로고침 없이 즉시 교체
+          const newUrl = `${window.location.origin}${window.location.pathname}?id=${newId}`;
+          window.history.pushState(null, '', newUrl);
+        }
+        return newId;
+      }
+    } catch (e) {
+      console.error('Save error:', e);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -225,9 +254,9 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 flex justify-center font-sans text-gray-800">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative overflow-x-hidden">
         {isEditMode ? (
-          <EditForm data={data} setData={setData} setIsEditMode={setIsEditMode} showToast={showToast} user={user} appId={appId} storage={storage} />
+          <EditForm data={data} setData={setData} setIsEditMode={setIsEditMode} showToast={showToast} user={user} appId={appId} storage={storage} handleSave={handleSave} />
         ) : (
-          <InvitationPreview data={data} setData={setData} formatDate={formatDate} formatTime={formatTime} showToast={showToast} isViewer={isViewer} invitationId={invitationId} appId={appId} />
+          <InvitationPreview data={data} setData={setData} formatDate={formatDate} formatTime={formatTime} showToast={showToast} isViewer={isViewer} invitationId={invitationId} appId={appId} handleSave={handleSave} />
         )}
 
         {!isViewer && (
@@ -235,7 +264,8 @@ export default function App() {
             {isEditMode ? (
               <>
                 <button onClick={() => setIsEditMode(false)} className="w-14 h-14 bg-gray-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-600 transition-colors"><X size={24} /></button>
-                <button onClick={() => setIsEditMode(false)} className="w-14 h-14 bg-[#B99A7A] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#a38668] transition-colors"><Check size={24} /></button>
+                {/* 🔹 체크(완료) 버튼 클릭 시 자동 저장되도록 추가 */}
+                <button onClick={() => { setIsEditMode(false); handleSave(); }} className="w-14 h-14 bg-[#B99A7A] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#a38668] transition-colors"><Check size={24} /></button>
               </>
             ) : (
               <button onClick={() => setIsEditMode(true)} className="w-14 h-14 bg-gray-800 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-700 transition-colors"><Settings size={24} /></button>
@@ -256,7 +286,7 @@ export default function App() {
 // ==========================================
 // 미리보기 모드 컴포넌트
 // ==========================================
-function InvitationPreview({ data, setData, formatDate, formatTime, showToast, isViewer, invitationId, appId }) {
+function InvitationPreview({ data, setData, formatDate, formatTime, showToast, isViewer, invitationId, appId, handleSave }) {
   const [openGroom, setOpenGroom] = useState(false);
   const [openBride, setOpenBride] = useState(false);
   const [showParentsContact, setShowParentsContact] = useState(false);
@@ -326,8 +356,16 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
   };
 
   const copyToClipboard = (text) => executeCopy(text, '계좌번호가 복사되었습니다.');
-  const copyInvitationLink = () => {
-    if (typeof window !== 'undefined') executeCopy(window.location.href, '초대장 링크가 복사되었습니다!');
+  
+  const copyInvitationLink = async () => {
+    // 🔹 공유 시 최신 데이터 자동 저장 및 최신 URL 획득
+    const savedId = await handleSave();
+    if (!savedId) {
+      showToast('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      return;
+    }
+    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${savedId}`;
+    if (typeof window !== 'undefined') executeCopy(shareUrl, '초대장 링크가 복사되었습니다!');
   };
 
   const handleNaverMapClick = (e) => {
@@ -347,7 +385,7 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
     }
   };
 
-  const shareKakao = () => {
+  const shareKakao = async () => {
     if (typeof window === 'undefined' || !window.Kakao) {
       showToast('카카오 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
@@ -355,13 +393,21 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
     try {
       if (!window.Kakao.isInitialized()) window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'a1bc967f249056d996c6bf4d8c91be60'));
 
+      // 🔹 카카오톡 공유 시에도 최신 데이터 자동 저장 보장 및 최신 URL 획득
+      const savedId = await handleSave();
+      if (!savedId) {
+        showToast('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+        return;
+      }
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?id=${savedId}`;
+
       const coverImg = data.mainCoverType === 'edited' && data.editedMainPhoto ? data.editedMainPhoto : data.mainPhoto;
       const targetImage = data.thumbnailPhoto || coverImg;
       const isBase64 = targetImage && targetImage.startsWith('data:');
       const finalThumbnail = isBase64 ? 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?q=80&w=2070&auto=format&fit=crop' : targetImage;
       if (isBase64) showToast('업로드 중인 이미지입니다. 기본 이미지로 공유됩니다.');
 
-      const shareUrl = window.location.href;
       window.Kakao.Share.sendDefault({
         objectType: 'feed',
         content: {
@@ -598,7 +644,7 @@ function InvitationPreview({ data, setData, formatDate, formatTime, showToast, i
 // ==========================================
 // 편집 폼 컴포넌트
 // ==========================================
-function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storage }) {
+function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storage, handleSave }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
 
@@ -659,10 +705,16 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
   const handleGenerateLink = async () => {
     if (!user) return showToast('서버 접속에 실패했습니다.');
     setIsGenerating(true);
-    try {
-      const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'invitations'), data);
-      setGeneratedLink(typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?id=${docRef.id}` : `?id=${docRef.id}`);
-    } catch (e) { showToast('링크 생성에 실패했습니다.'); }
+    
+    // 🔹 기존에 새 문서만 생성하던 로직에서, 수정 모드일 땐 덮어쓰기 저장 및 URL 유지 기능이 포함된 handleSave 호출로 변경
+    const savedId = await handleSave();
+    
+    if (savedId) {
+      const newUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?id=${savedId}` : `?id=${savedId}`;
+      setGeneratedLink(newUrl);
+    } else {
+      showToast('링크 생성(저장)에 실패했습니다.');
+    }
     setIsGenerating(false);
   };
 
@@ -683,7 +735,8 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
       <div className="bg-white p-4 sticky top-0 z-40 shadow-md flex items-center justify-between border-b border-gray-200">
         <h1 className="font-bold text-gray-800 flex items-center gap-2"><Settings size={20} /> 설정</h1>
         <div className="flex gap-2">
-          <button onClick={() => setIsEditMode(false)} className="px-3 py-1.5 rounded-full text-sm font-medium border border-gray-300 text-gray-600 bg-white">미리보기</button>
+          {/* 🔹 미리보기 버튼 클릭 시에도 저장이 보장되도록 handleSave 호출 */}
+          <button onClick={() => { setIsEditMode(false); handleSave(); }} className="px-3 py-1.5 rounded-full text-sm font-medium border border-gray-300 text-gray-600 bg-white">미리보기</button>
           <button onClick={handleGenerateLink} disabled={isGenerating} className="bg-[#B99A7A] text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-[#a38668] flex items-center gap-1 shadow-sm">{isGenerating ? <Loader2 size={16} className="animate-spin" /> : <LinkIcon size={16} />}링크 생성</button>
         </div>
       </div>
@@ -691,7 +744,7 @@ function EditForm({ data, setData, setIsEditMode, showToast, user, appId, storag
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
             <div className="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4"><Check size={28} /></div>
-            <h3 className="text-xl font-bold mb-2 text-gray-800">모바일초대장이 생성되었습니다!</h3>
+            <h3 className="text-xl font-bold mb-2 text-gray-800">모바일초대장이 저장/생성되었습니다!</h3>
             <p className="text-gray-500 text-sm mb-5">아래 주소를 복사하여 공유하세요.</p>
             <input type="text" readOnly value={generatedLink} className="w-full bg-gray-100 p-3 rounded-lg text-sm mb-5 text-center text-gray-700 outline-none border border-gray-200" />
             <div className="flex gap-2">
