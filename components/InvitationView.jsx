@@ -181,12 +181,12 @@ export default function App() {
       script.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
       script.onload = () => {
         if (window.Kakao && !window.Kakao.isInitialized()) {
-          window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'f6d0ab13fce12a6a86747d727894e634'));
+          window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'a1bc967f249056d996c6bf4d8c91be60'));
         }
       };
       document.head.appendChild(script);
     } else if (!window.Kakao.isInitialized()) {
-      window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'f6d0ab13fce12a6a86747d727894e634'));
+      window.Kakao.init(getEnv('NEXT_PUBLIC_KAKAO_APP_KEY', 'a1bc967f249056d996c6bf4d8c91be60'));
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
